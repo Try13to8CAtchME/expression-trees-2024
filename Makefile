@@ -1,21 +1,14 @@
-SHELL := /bin/sh
+CC = gcc
+CFLAGS = -Wall -Wextra -O2
 
-CC ?= cc
-LD := $(CC)
+# Собираем все .c файлы в .o файлы
+OBJ = $(patsubst %.c,%.o,$(wildcard *.c))
 
-CFLAGS := -std=c99 -O0 -g -Wall -Wextra -Werror -Wno-switch -Wno-unused-const-variable
-LDFLAGS := -lm -fsanitize=address,leak,undefined
+expr: $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^ -lm
 
-all: expr
-
-expr: string.o list.o lexer.o parser.o transform.o main.o
-	$(LD) -o $@ $(LDFLAGS) $^
-
-.c.o:
-	$(CC) -o $@ $(CFLAGS) -c $^
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm expr
-	rm *.o
-
-.PHONY: all clean
+	rm -f *.o expr

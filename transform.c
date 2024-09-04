@@ -9,6 +9,7 @@
 // @NOTE: Put transformer functions prototypes here
 static bool factor_difference_of_squares(Expression* const expression);
 static bool fold_multipliers_to_diff_of_squares(Expression* const expression);
+static bool replace_subtraction_with_addition(Expression* const expression);
 
 // Make deep copy of a given expression.
 static Expression* expression_copy(const Expression* const expression);
@@ -31,7 +32,8 @@ void expand_expression(Expression* const expression)
 	assert(expression != NULL);
 
 	// @NOTE: Put expander transformer functions here
-	factor_difference_of_squares(expression);
+	// factor_difference_of_squares(expression);
+	replace_subtraction_with_addition(expression);
 }
 
 double evaluate_expression(const Expression* const expression)
@@ -84,6 +86,46 @@ double evaluate_expression(const Expression* const expression)
 
 	// @NOTE: ExpressionType_Empty and LiteralTag_Symbol case
 	return 0;
+}
+
+static bool replace_subtraction_with_addition(Expression* const expression)
+{
+	assert(expression != NULL);
+
+	switch (expression->type) {
+	case ExpressionType_Unary: {
+		UnaryExpression* const unary = (UnaryExpression*)expression;
+		return replace_subtraction_with_addition(unary->subexpression);
+	} break;
+
+	case ExpressionType_Binary: {
+		BinaryExpression* const binary = (BinaryExpression*)expression;
+
+		const bool other_result = replace_subtraction_with_addition(binary->left) |
+								  replace_subtraction_with_addition(binary->right);
+
+		if (binary->operator == TokenType_Minus) {
+			binary->operator = TokenType_Plus;
+
+			Expression* const right = binary->right;
+			if (right->type != ExpressionType_Literal) {
+				right->parenthesised = true;
+			}
+
+			binary->right = (Expression*)expression_unary_create(
+				TokenType_Minus,
+				right
+			);
+			binary->right->parenthesised = true;
+
+			return true;
+		}
+
+		return other_result;
+	} break;
+	}
+
+	return false;
 }
 
 //
